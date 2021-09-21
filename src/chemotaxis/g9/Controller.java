@@ -16,6 +16,7 @@ public class Controller extends chemotaxis.sim.Controller {
 	List<Point> shortestPathList;
 	private int incrementBy;
 	private int colorCounter = 0;
+	private int currentPathIndex = 1;
 	private int idealChemicalIncrement = 10;
 	/**
 	 * Controller constructor
@@ -36,6 +37,7 @@ public class Controller extends chemotaxis.sim.Controller {
 		this.incrementBy = decidePlacementStrategy(this.shortestPathList, idealChemicalIncrement, budget);
 	}
 	
+	// will this need to keep track of simTime?
 	public int decidePlacementStrategy(List<Point> shortestPathList, int idealChemicalIncrement, int budget) {
 		budget --; // take out for the beginning chemical
 		budget --; // take out another for the ending chemical
@@ -63,15 +65,30 @@ public class Controller extends chemotaxis.sim.Controller {
 	public ChemicalPlacement applyChemicals(Integer currentTurn, Integer chemicalsRemaining, ArrayList<Point> locations, ChemicalCell[][] grid) {
 		ChemicalPlacement chemicalPlacement = new ChemicalPlacement();
 		List<ChemicalType> chemicals = new ArrayList<>();
+		ChemicalType[] rotation = {ChemicalType.RED, ChemicalType.GREEN, ChemicalType.BLUE};
+		
+		// drop at current location
 		Point pointToPlace;
-		if (currentTurn % 2 == 1) {
-			chemicals.add(ChemicalType.BLUE);
-			pointToPlace = this.shortestPathList.get(this.shortestPathList.size()-1);
-		} else {
-			chemicals.add(ChemicalType.GREEN);
-			pointToPlace = this.shortestPathList.get(this.shortestPathList.size() / 2);
-		}
+		pointToPlace = this.shortestPathList.get(currentPathIndex);
 		chemicalPlacement.location = new Point(pointToPlace.x + 1, pointToPlace.y + 1);
+		
+		// pick right chemical in sequence
+		chemicals.add(rotation[colorCounter]);
+		colorCounter = (colorCounter + 1) % 3;
+		
+		// increment steps
+		// handle wraparound cases 
+		int pathLength = this.shortestPathList.size();
+		int nextPathIndex = currentPathIndex + incrementBy;
+		// if we are on the last step, move to the first step, and make sure we reset the color counter
+		if (currentPathIndex == pathLength - 1) {
+			nextPathIndex = 1;
+			colorCounter = 0;
+		} else if (nextPathIndex > pathLength - 1) { // if we are about to wrap around, put us at the last step.
+			nextPathIndex = pathLength - 1;
+		}
+		
+		currentPathIndex = nextPathIndex;
 		chemicalPlacement.chemicals = chemicals;
 
 		return chemicalPlacement;
@@ -84,6 +101,7 @@ public class Controller extends chemotaxis.sim.Controller {
 		 ArrayList<Point> start = new ArrayList<>();
 		 HashMap<Point, Boolean> visited = new HashMap<Point, Boolean>();
 		 int[][] moves = {{-1,0}, {1,0}, {0,1}, {0,-1}};
+		 // account off by one
 		 Point startPoint = new Point(this.start.x - 1, this.start.y - 1);
 		 Point targetPoint = new Point(this.target.x - 1, this.target.y - 1);
 		 start.add(startPoint);
